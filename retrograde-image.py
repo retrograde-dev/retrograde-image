@@ -12,6 +12,7 @@ import zipfile
 
 class RetrogradeImage:
     _name = None
+    _version = None
 
     _input_name = None
     _input_data = None
@@ -53,24 +54,27 @@ class RetrogradeImage:
         data = self._load_config(config)
 
         self._name = data.get("name", "unnamed")
+        self._version = data.get("version", "v1.0.0")
 
-        if data.get("inputs") == None:
+        if data.get("inputs") is None:
             self._errors.append("No inputs in config (" + config + ").")
             return
 
-        if data.get("outputs") == None:
+        if data.get("outputs") is None:
             self._errors.append("No outputs in config (" + config + ").")
             return
 
-        for output_name, output_data in data["outputs"].items():
-            if len(output_data.get('themes', [])) == 0:
-                themes = ["default"]
+        for output_name, output_data in data.get("outputs", {}).items():
+            if data.get("themes") is None:
+                themes = ["Default"]
             else:
-                themes = output_data.get('themes')
+                themes = output_data.get('themes', data.get("themes").keys())
 
             for theme_name in themes:
-                for input_name, input_data in data["inputs"].items():
-                    if not input_name in output_data.get("inputs", []):
+                for input_name, input_data in data.get("inputs", {}).items():
+                    if (not output_data.get("inputs") is None and
+                        not input_name in output_data.get("inputs")
+                    ):
                         continue
 
                     if input_data.get("paths") is None:
@@ -99,14 +103,22 @@ class RetrogradeImage:
                         groups[self._input_name].variants = variants
                         self._input_data["groups"] = groups
 
-                    if data.get("themes") is None:
+                    if data.get("themes") is None or theme_name == "Default":
                         self._theme_name = theme_name
                         self._theme_data = None
-                    else:
+                    elif not data["themes"].get(theme_name) is None:
                         self._theme_name = theme_name
                         self._theme_data = data["themes"].get(theme_name)
+                    else:
+                        self._errors.append("Theme not found. (" + theme_name + ")")
+                        continue
 
                     for config_data in output_data.get("configs", []):
+                        if (not config_data.get("inputs") is None and
+                            not input_name in config_data.get("inputs")
+                        ):
+                            continue
+
                         self._config_data = config_data
 
                         self._output_config()
@@ -137,12 +149,16 @@ class RetrogradeImage:
         self._frame_index = 0
         self._frame_width = 0
         self._frame_height = 0
+        self._image_width = 0
+        self._image_height = 0
 
         self._ora_size = {}
         self._ora_layers = {}
         self._layer_map = {}
 
         self._spinner_index = 0
+
+        self._errors = []
 
     def _output_config(self):
         self._output_spinner()
@@ -347,19 +363,18 @@ class RetrogradeImage:
                 new_size = None
                 new_position = None
 
-                if direction == "vertical":
-                    new_size = (
-                        img.width + variant_img.width,
-                        max(img.height, variant_img.height)
-                    )
-                    new_position = (img.width, 0)
-
-                else:
+                if direction == "horizontal":
                     new_size = (
                         max(img.width, variant_img.width),
                         img.height + variant_img.height
                     )
                     new_position = (0, img.height)
+                else:
+                    new_size = (
+                        img.width + variant_img.width,
+                        max(img.height, variant_img.height)
+                    )
+                    new_position = (img.width, 0)
 
                 if new_size is None or new_position is None:
                     continue
@@ -432,9 +447,6 @@ class RetrogradeImage:
                     img = variant_img
                     continue
 
-                new_size = None
-                new_position = None
-
                 if group_padding and not first_group and first_variant:
                     frame_size = self._get_size_with_padding(
                         self._get_size_from_variant(variant_name),
@@ -457,22 +469,21 @@ class RetrogradeImage:
 
                         img = new_img
 
-                if direction == "vertical":
-                    new_size = (
-                        img.width + variant_img.width,
-                        max(img.height, variant_img.height)
-                    )
-                    new_position = (img.width, 0)
+                new_size = None
+                new_position = None
 
-                else:
+                if direction == "horizontal":
                     new_size = (
                         max(img.width, variant_img.width),
                         img.height + variant_img.height
                     )
                     new_position = (0, img.height)
-
-                if new_size is None or new_position is None:
-                    continue
+                else:
+                    new_size = (
+                        img.width + variant_img.width,
+                        max(img.height, variant_img.height)
+                    )
+                    new_position = (img.width, 0)
 
                 new_img = Image.new("RGBA", new_size, (0, 0, 0, 0))
 
@@ -939,16 +950,15 @@ class RetrogradeImage:
 
             if direction == "horizontal":
                 padding_x += padding[1]
-            else:
-                padding_y += padding[2]
 
-            if direction == "horizontal":
                 col += 1
 
                 if col > img_size[0] / variant_size[0]:
                     col = 0
                     row += 1
             else:
+                padding_y += padding[2]
+
                 row += 1
                 if row > img_size[1] / variant_size[1]:
                     row = 0
@@ -959,9 +969,7 @@ class RetrogradeImage:
     def _process_image(self, img, alpha=1.0):
         color_map = self._get_color_map()
 
-        img = self._replace_colors(img, color_map, alpha)
-
-        return img
+        return self._replace_colors(img, color_map, alpha)
 
     def _get_color_map(self):
         if self._theme_data is None:
@@ -1026,11 +1034,11 @@ class RetrogradeImage:
         # Image.paste does't blend right so we do it manually
 
         # Ensure pasted image is same size as background image
-        layer = Image.new("RGBA", img.size, (0,0,0,0))
-        layer.paste(variant_img, position)
+        layer_img = Image.new("RGBA", img.size, (0,0,0,0))
+        layer_img.paste(variant_img, position)
 
         a_bg = np.asarray(img).astype(np.float32)
-        a_fg = np.asarray(layer).astype(np.float32)
+        a_fg = np.asarray(layer_img).astype(np.float32)
 
         bg_rgb = a_bg[..., :3]
         bg_a = a_bg[..., 3:4] / 255.0
@@ -1296,10 +1304,10 @@ class RetrogradeImage:
         frames = template["frames"]
 
         for current_group_name, group_data in self._input_data.get("groups", {}).items():
-            self._references = group_data.get("references", {})
-
             if group_name != None and group_name != current_group_name:
                 continue
+
+            self._references = group_data.get("references", {})
 
             for variant_name in group_data.get("variants", []):
                 self._get_reference("*", variant_name)
@@ -1400,7 +1408,7 @@ class RetrogradeImage:
 
     def _clean_path(self, s):
         s = s.replace("[[name]]", self._clean_value(self._name))
-        s = s.replace("[[version]]", self._clean_value(str(self._name)))
+        s = s.replace("[[version]]", self._clean_value(str(self._version)))
         s = s.replace("[[theme]]", self._clean_value(self._theme_name))
         s = s.replace("[[variant]]", self._clean_value(self._variant_name))
         s = s.replace("[[input]]", self._clean_value(self._input_name))
@@ -1417,7 +1425,7 @@ class RetrogradeImage:
         s = s.replace("[[image_height]]", str(self._image_height))
 
         s = s.replace("[[^name]]", self._clean_value(self._name, True))
-        s = s.replace("[[^version]]", self._clean_value(str(self._name)))
+        s = s.replace("[[^version]]", self._clean_value(str(self._version)))
         s = s.replace("[[^theme]]", self._clean_value(self._theme_name, True))
         s = s.replace("[[^variant]]", self._clean_value(self._variant_name, True))
         s = s.replace("[[^input]]", self._clean_value(self._input_name, True))
@@ -1443,7 +1451,7 @@ class RetrogradeImage:
             value.join(word[0].upper() + word[1:] for word in value.split('_'))
         else:
             value = value.lower()
-            value = re.sub(r'[^a-z0-9-_\ \/\.\(\)\[\]]]', '', value)
+            value = re.sub(r'[^a-z0-9-_\ \/\.]', '', value)
             value = value.replace(" ", "_").replace("-", "_")
 
         return value

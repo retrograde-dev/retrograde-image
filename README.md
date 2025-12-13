@@ -389,7 +389,7 @@ A unique name given to this output.
 
 ### outputs.\<output\_name\>.inputs: ["\<input\_name\>", ...]
 
-A list of input names to use for this output.
+A list of input names to use for this output. If not specified, all inputs will be used.
 
 ### outputs.\<output\_name\>.themes: ["\<theme\_name\>", ...]
 
@@ -397,7 +397,9 @@ A list of theme names to use for this output.
 
 If more than one theme is specified, the `[[theme]]` variable should be used somewhere in the output path.
 
-If no theme is specified, then the original open raster image colors are used.
+If no theme is specified, then all themes will be used.
+
+To use the original open raster image colors, use *Default* as the theme name. The *Default* theme will also be used if no themes are defined anywhere.
 
 ### outputs.\<output\_name\>.path: "\<path\>"
 
@@ -408,6 +410,10 @@ The main path to output the resulting images to.
 A list of output configurations to generate images from.
 
 ## Output Configs
+
+### outputs.\<output\_name\>.configs[n].inputs: ["\<input\_name\>", ...]
+
+A list of inputs to use for this config. This overrides the `outputs.<output_name>.inputs` value.
 
 ### outputs.\<output\_name\>.configs[n].template: "\<template\_name\>"
 
