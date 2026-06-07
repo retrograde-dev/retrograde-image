@@ -77,7 +77,9 @@ class RetrogradeImage:
                     ):
                         continue
 
-                    if input_data.get("paths") is None:
+                    if (input_data.get("paths") is None or
+                        len(input_data.get("paths")) == 0
+                    ):
                         continue
 
                     self._input_name = input_name
@@ -190,12 +192,12 @@ class RetrogradeImage:
                 if variant_name in self._input_data.get("skip", []):
                     continue
 
-                if not variant_name in self._layer_map.keys():
-                    continue
-
                 self._variant_name = variant_name
 
-                self._image_name = Path(self._layer_map[variant_name]).stem
+                if variant_name in self._layer_map.keys():
+                    self._image_name = Path(self._layer_map[variant_name]).stem
+                else:
+                    self._image_name = Path(self._input_data.get("paths")[0]).stem
 
                 self._frame_index = self._config_data.get("start_index", 0)
 
@@ -234,12 +236,12 @@ class RetrogradeImage:
                 if variant_name in self._input_data.get("skip", []):
                     continue
 
-                if not variant_name in self._layer_map.keys():
-                    continue
-
                 self._variant_name = variant_name
 
-                self._image_name = Path(self._layer_map[variant_name]).stem
+                if variant_name in self._layer_map.keys():
+                    self._image_name = Path(self._layer_map[variant_name]).stem
+                else:
+                    self._image_name = Path(self._input_data.get("paths")[0]).stem
 
                 self._frame_index = self._config_data.get("start_index", 0)
 
@@ -319,8 +321,6 @@ class RetrogradeImage:
             real_frame_index += 1
 
     def _output_sheet_split_directional(self, output_path, frame_index=-1):
-        template = self._input_data["templates"][self._config_data["template"]]
-
         direction = self._config_data.get("direction", "horizontal")
 
         self._variant_name = self._input_name
@@ -338,9 +338,6 @@ class RetrogradeImage:
                 if variant_name in self._input_data.get("skip", []):
                     continue
 
-                if not variant_name in self._layer_map.keys():
-                    continue
-
                 variant_img = self._get_image_from_variant(
                     group_name,
                     variant_name,
@@ -351,7 +348,10 @@ class RetrogradeImage:
                     continue
 
                 if img is None:
-                    self._image_name = Path(self._layer_map[variant_name]).stem
+                    if variant_name in self._layer_map.keys():
+                        self._image_name = Path(self._layer_map[variant_name]).stem
+                    else:
+                        self._image_name = Path(self._input_data.get("paths")[0]).stem
 
                     (self._frame_width, self._frame_height) = self._get_size_with_padding(
                         self._get_size_from_variant(variant_name),
@@ -400,8 +400,6 @@ class RetrogradeImage:
             img.save(file)
 
     def _output_sheet_grouped_directional(self, output_path, frame_index=-1):
-        template = self._input_data["templates"][self._config_data["template"]]
-
         direction = self._config_data.get("direction", "horizontal")
         group_padding = self._config_data.get("group_padding", False)
 
@@ -424,9 +422,6 @@ class RetrogradeImage:
                 if variant_name in self._input_data.get("skip", []):
                     continue
 
-                if not variant_name in self._layer_map.keys():
-                    continue
-
                 variant_img = self._get_image_from_variant(
                     group_name,
                     variant_name,
@@ -437,7 +432,10 @@ class RetrogradeImage:
                     continue
 
                 if img is None:
-                    self._image_name = Path(self._layer_map[variant_name]).stem
+                    if variant_name in self._layer_map.keys():
+                        self._image_name = Path(self._layer_map[variant_name]).stem
+                    else:
+                        self._image_name = Path(self._input_data.get("paths")[0]).stem
 
                     (self._frame_width, self._frame_height) = self._get_size_with_padding(
                         self._get_size_from_variant(variant_name),
@@ -510,8 +508,6 @@ class RetrogradeImage:
         img.save(file)
 
     def _output_sheet_split_tiled(self, output_path, frame_index=-1):
-        template = self._input_data["templates"][self._config_data["template"]]
-
         self._variant_name = self._input_name
 
         direction = self._config_data.get("direction", "horizontal")
@@ -548,9 +544,6 @@ class RetrogradeImage:
                 if variant_name in self._input_data.get("skip", []):
                     continue
 
-                if not variant_name in self._layer_map.keys():
-                    continue
-
                 variant_img = self._get_image_from_variant(
                     group_name,
                     variant_name,
@@ -561,7 +554,10 @@ class RetrogradeImage:
                     continue
 
                 if img is None:
-                    self._image_name = Path(self._layer_map[variant_name]).stem
+                    if variant_name in self._layer_map.keys():
+                        self._image_name = Path(self._layer_map[variant_name]).stem
+                    else:
+                        self._image_name = Path(self._input_data.get("paths")[0]).stem
 
                     (self._frame_width, self._frame_height) = self._get_size_with_padding(
                         self._get_size_from_variant(variant_name),
@@ -666,8 +662,6 @@ class RetrogradeImage:
             img.save(file)
 
     def _output_sheet_grouped_tiled(self, output_path, frame_index=-1):
-        template = self._input_data["templates"][self._config_data["template"]]
-
         direction = self._config_data.get("direction", "horizontal")
         group_padding = self._config_data.get("group_padding", False)
         continuous = self._config_data.get("continuous", False)
@@ -710,9 +704,6 @@ class RetrogradeImage:
                 if variant_name in self._input_data.get("skip", []):
                     continue
 
-                if not variant_name in self._layer_map.keys():
-                    continue
-
                 variant_img = self._get_image_from_variant(
                     group_name,
                     variant_name,
@@ -723,7 +714,10 @@ class RetrogradeImage:
                     continue
 
                 if img is None:
-                    self._image_name = Path(self._layer_map[variant_name]).stem
+                    if variant_name in self._layer_map.keys():
+                        self._image_name = Path(self._layer_map[variant_name]).stem
+                    else:
+                        self._image_name = Path(self._input_data.get("paths")[0]).stem
 
                     (self._frame_width, self._frame_height) = self._get_size_with_padding(
                         self._get_size_from_variant(variant_name),
@@ -770,7 +764,7 @@ class RetrogradeImage:
                 group_continuous = False
                 if isinstance(continuous, bool):
                     group_continuous = continuous
-                elif group_name != None and group_name in continuous:
+                elif group_name in continuous:
                     group_continuous = True
 
                 if group_continuous and not group_data.get("break", False) and first_variant:
@@ -976,6 +970,7 @@ class RetrogradeImage:
             return []
 
         input_colors = self._input_data.get("colors")
+        group_colors = self._input_data.get("groups", {}).get(self._group_name, {}).get("colors", {})
 
         if input_colors is None:
             return []
@@ -987,6 +982,9 @@ class RetrogradeImage:
 
             if input_color is None:
                 continue
+
+            if color_name in group_colors:
+                output_color = self._theme_data.get(group_colors.get(color_name), output_color)
 
             color_map.append((input_color, output_color))
 
@@ -1102,15 +1100,15 @@ class RetrogradeImage:
         return layers
 
     def _get_size_from_variant(self, variant_name):
-        if self._layer_map.get(variant_name) is None:
-            self._errors.append("Variant not found. (" + variant_name + ")")
-            return None
-
         if self._input_data.get("groups") is not None:
             for group_name, group_data in self._input_data["groups"].items():
                 if variant_name in group_data.get("variants", []):
                     if group_data.get("size") is not None:
                         return group_data.get("size")
+
+        if self._layer_map.get(variant_name) is None:
+            self._errors.append("Variant not found. (" + variant_name + ")")
+            return None
 
         return self._get_size_from_ora(self._layer_map.get(variant_name))
 
@@ -1315,9 +1313,6 @@ class RetrogradeImage:
                 if variant_name in self._input_data.get("skip", []):
                     continue
 
-                if not variant_name in self._layer_map.keys():
-                    continue
-
                 variant_size = self._get_size_from_variant(variant_name)
 
                 if variant_size == None:
@@ -1346,7 +1341,32 @@ class RetrogradeImage:
         reference = self._references.get(layer_name, layer_name)
 
         if isinstance(reference, dict):
-            reference = reference.get(variant_name, layer_name)
+            if variant_name in reference:
+                reference = reference.get(variant_name, layer_name)
+            else:
+                result = layer_name
+
+                for s in reference:
+                    if not s.startswith("/") or not s.endswith("/"):
+                        continue
+
+                    pattern = s.strip("/")
+                    match = re.search(pattern, variant_name)
+
+                    if match == None:
+                        continue
+
+                    result = reference.get(s, layer_name)
+
+                    for index in range(match.lastindex):
+                        result = result.replace(
+                            "$" + str(index + 1),
+                            match.group(index + 1)
+                        )
+
+                    break
+
+                reference = result
 
         if reference == "*":
             return variant_name
@@ -1369,12 +1389,18 @@ class RetrogradeImage:
 
                     for frame_reference in frame_references.get(frame_layer):
                         if (frame_reference.get("groups") != None and
-                            not group_name in frame_reference.get("groups")
+                            not self._matches_values(
+                                group_name,
+                                frame_reference.get("groups")
+                            )
                         ):
                             continue
 
                         if (frame_reference.get("variants") != None and
-                            not variant_name in frame_reference.get("variants")
+                            not self._matches_values(
+                                variant_name,
+                                frame_reference.get("variants")
+                            )
                         ):
                             continue
 
@@ -1386,12 +1412,18 @@ class RetrogradeImage:
                         new_frame_layers.append(new_frame_layer)
                 else:
                     if (frame_layer.get("groups") != None and
-                        not group_name in frame_layer.get("groups")
+                        not self._matches_values(
+                            group_name,
+                            frame_layer.get("groups")
+                        )
                     ):
                         continue
 
                     if (frame_layer.get("variants") != None and
-                        not variant_name in frame_layer.get("variants")
+                        not self._matches_values(
+                            variant_name,
+                            frame_layer.get("variants")
+                        )
                     ):
                         continue
 
@@ -1405,6 +1437,25 @@ class RetrogradeImage:
             new_frames.append(new_frame_layers)
 
         return new_frames
+
+    def _matches_values(self, s, values):
+        if s in values:
+            return True
+
+        for value in values:
+            if value.startswith("/") and value.endswith("/"):
+                pattern = s.strip("/")
+                match = re.search(pattern, s)
+
+                if match != None:
+                    return True
+
+            parts = value.split("*", 1)
+
+            if len(parts) == 2 and s.startswith(parts[0]) and s.endswith(parts[1]):
+                return True
+
+        return False
 
     def _clean_path(self, s):
         s = s.replace("[[name]]", self._clean_value(self._name))

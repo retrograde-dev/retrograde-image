@@ -182,7 +182,7 @@ A unique name to give this input.
 
 The paths to all open raster image templates that apply to this input.
 
-### inputs.\<input\_name\>.\<color\_name\> : "\<color\>"
+### inputs.\<input\_name\>.colors.\<color\_name\> : "\<color\>"
 
 The hex color should match a color in your open raster image template and be 6 or 8 digits.
 
@@ -609,7 +609,7 @@ The following output values support output variables.
 |**[[frame]]**| The index of the current frame.
 |**[[input]]**| The name of the current input.
 |**[[output]]**| The name of the current output.
-|**[[image]]**| The name of the current input image. If multiple images, the image the current **Variant** will be used.
+|**[[image]]**| The name of the current input image. If multiple images, the image of the current **Variant** will be used.
 |**[[group]]**| The name of the current input group.
 |**[[template]]**| The name of the current input template.
 |**[[mode]]**| The name of the current mode.
