@@ -68,7 +68,7 @@ class RetrogradeImage:
             if data.get("themes") is None:
                 themes = ["Default"]
             else:
-                themes = output_data.get('themes', data.get("themes").keys())
+                themes = output_data.get("themes", data.get("themes").keys())
 
             for theme_name in themes:
                 for input_name, input_data in data.get("inputs", {}).items():
@@ -277,10 +277,10 @@ class RetrogradeImage:
     def _output_sheet(self):
         output_path = self._output_data["path"] + self._config_data.get("path", "") + ".png"
 
-        width = self._config_data.get("width", 0)
-        height = self._config_data.get("height", 0)
-        cols = self._config_data.get("cols", 0)
-        rows = self._config_data.get("rows", 0)
+        width = self._config_data.get("sheet_width", 0)
+        height = self._config_data.get("sheet_height", 0)
+        cols = self._config_data.get("sheet_cols", 0)
+        rows = self._config_data.get("sheet_rows", 0)
 
         if width <= 0 and height <= 0 and rows <= 0 and cols <= 0:
             if "[[group]]" in output_path:
@@ -297,10 +297,10 @@ class RetrogradeImage:
         output_path = self._output_data["path"] + self._config_data.get("path", "") + ".png"
         template = self._input_data["templates"][self._config_data["template"]]
 
-        width = self._config_data.get("width", 0)
-        height = self._config_data.get("height", 0)
-        cols = self._config_data.get("cols", 0)
-        rows = self._config_data.get("rows", 0)
+        width = self._config_data.get("sheet_width", 0)
+        height = self._config_data.get("sheet_height", 0)
+        cols = self._config_data.get("sheet_cols", 0)
+        rows = self._config_data.get("sheet_rows", 0)
 
         self._frame_index = self._config_data.get("start_index", 0)
         real_frame_index = 0
@@ -321,7 +321,7 @@ class RetrogradeImage:
             real_frame_index += 1
 
     def _output_sheet_split_directional(self, output_path, frame_index=-1):
-        direction = self._config_data.get("direction", "horizontal")
+        sheet_direction = self._config_data.get("sheet_direction", "horizontal")
 
         self._variant_name = self._input_name
 
@@ -363,18 +363,18 @@ class RetrogradeImage:
                 new_size = None
                 new_position = None
 
-                if direction == "horizontal":
-                    new_size = (
-                        max(img.width, variant_img.width),
-                        img.height + variant_img.height
-                    )
-                    new_position = (0, img.height)
-                else:
+                if sheet_direction == "horizontal":
                     new_size = (
                         img.width + variant_img.width,
                         max(img.height, variant_img.height)
                     )
                     new_position = (img.width, 0)
+                else:
+                    new_size = (
+                        max(img.width, variant_img.width),
+                        img.height + variant_img.height
+                    )
+                    new_position = (0, img.height)
 
                 if new_size is None or new_position is None:
                     continue
@@ -400,7 +400,7 @@ class RetrogradeImage:
             img.save(file)
 
     def _output_sheet_grouped_directional(self, output_path, frame_index=-1):
-        direction = self._config_data.get("direction", "horizontal")
+        sheet_direction = self._config_data.get("sheet_direction", "horizontal")
         group_padding = self._config_data.get("group_padding", False)
 
         img = None
@@ -470,18 +470,18 @@ class RetrogradeImage:
                 new_size = None
                 new_position = None
 
-                if direction == "horizontal":
-                    new_size = (
-                        max(img.width, variant_img.width),
-                        img.height + variant_img.height
-                    )
-                    new_position = (0, img.height)
-                else:
+                if sheet_direction == "horizontal":
                     new_size = (
                         img.width + variant_img.width,
                         max(img.height, variant_img.height)
                     )
                     new_position = (img.width, 0)
+                else:
+                    new_size = (
+                        max(img.width, variant_img.width),
+                        img.height + variant_img.height
+                    )
+                    new_position = (0, img.height)
 
                 new_img = Image.new("RGBA", new_size, (0, 0, 0, 0))
 
@@ -510,14 +510,19 @@ class RetrogradeImage:
     def _output_sheet_split_tiled(self, output_path, frame_index=-1):
         self._variant_name = self._input_name
 
-        direction = self._config_data.get("direction", "horizontal")
+        sheet_direction = self._config_data.get("sheet_direction", "horizontal")
+
+        frame_len = 1
+        if frame_index == -1:
+            template = self._input_data["templates"][self._config_data["template"]]
+            frame_len = len(template["frames"])
 
         for group_name, group_data in self._input_data.get("groups", {}).items():
             self._group_name = group_name
 
             self._references = group_data.get("references", {})
 
-            tiling_size = self._get_tiling_size(group_name)
+            tiling_size = self._get_tiling_size(group_name, frame_len)
 
             if tiling_size == None:
                 continue
@@ -527,16 +532,8 @@ class RetrogradeImage:
             offset_x = 0
             offset_y = 0
 
-            horizontal = True
-
-            if tiling_size[0] > 0:
-                if tiling_size[1] > 0 and direction == "horizontal":
-                    horizontal = False
-            else:
-                horizontal = False
-
-            cols = self._config_data.get("cols", 0)
-            rows = self._config_data.get("rows", 0)
+            cols = self._config_data.get("sheet_cols", 0)
+            rows = self._config_data.get("sheet_rows", 0)
 
             for variant_name in group_data.get("variants", []):
                 variant_name = self._get_reference("*", variant_name)
@@ -593,7 +590,7 @@ class RetrogradeImage:
 
                     img.paste(variant_img, (0, 0))
 
-                    if horizontal:
+                    if sheet_direction == "horizontal":
                         offset_x += variant_img.width
                     else:
                         offset_y += variant_img.height
@@ -605,7 +602,7 @@ class RetrogradeImage:
                 new_size = None
                 new_position = None
 
-                if horizontal:
+                if sheet_direction == "horizontal":
                     if offset_x + variant_img.width > tiling_size[0]:
                         offset_x = 0
                         offset_y += variant_img.height
@@ -662,11 +659,16 @@ class RetrogradeImage:
             img.save(file)
 
     def _output_sheet_grouped_tiled(self, output_path, frame_index=-1):
-        direction = self._config_data.get("direction", "horizontal")
+        sheet_direction = self._config_data.get("sheet_direction", "horizontal")
         group_padding = self._config_data.get("group_padding", False)
         continuous = self._config_data.get("continuous", False)
 
-        tiling_size = self._get_tiling_size()
+        frame_len = 1
+        if frame_index == -1:
+            template = self._input_data["templates"][self._config_data["template"]]
+            frame_len = len(template["frames"])
+
+        tiling_size = self._get_tiling_size(None, frame_len)
 
         if tiling_size == None:
             return
@@ -676,16 +678,8 @@ class RetrogradeImage:
         offset_x = 0
         offset_y = 0
 
-        horizontal = True
-
-        if tiling_size[0] > 0:
-            if tiling_size[1] > 0 and direction == "horizontal":
-                horizontal = False
-        else:
-            horizontal = False
-
-        cols = self._config_data.get("cols", 0)
-        rows = self._config_data.get("rows", 0)
+        cols = self._config_data.get("sheet_cols", 0)
+        rows = self._config_data.get("sheet_rows", 0)
 
         self._variant_name = self._input_name
 
@@ -751,7 +745,7 @@ class RetrogradeImage:
 
                     img.paste(variant_img, (0, 0))
 
-                    if horizontal:
+                    if sheet_direction == "horizontal":
                         offset_x += variant_img.width
                     else:
                         offset_y += variant_img.height
@@ -768,7 +762,7 @@ class RetrogradeImage:
                     group_continuous = True
 
                 if group_continuous and not group_data.get("break", False) and first_variant:
-                    if horizontal:
+                    if sheet_direction == "horizontal":
                         if variant_img.height != last_img.height:
                             offset_x = 0
                             offset_y += last_img.height
@@ -793,7 +787,7 @@ class RetrogradeImage:
                             if offset_y % frame_size[1] != 0:
                                 offset_y = math.ceil(offset_y / frame_size[1]) * frame_size[1]
                 elif first_variant:
-                    if horizontal:
+                    if sheet_direction == "horizontal":
                         offset_x = 0
                         offset_y += last_img.height
                     else:
@@ -807,7 +801,7 @@ class RetrogradeImage:
                 new_size = None
                 new_position = None
 
-                if horizontal:
+                if sheet_direction == "horizontal":
                     if offset_x + variant_img.width > tiling_size[0]:
                         offset_x = 0
                         offset_y += variant_img.height
@@ -880,7 +874,7 @@ class RetrogradeImage:
         if variant_size == None:
             return None
 
-        direction = self._config_data.get("direction", "horizontal")
+        frame_direction = self._config_data.get("frame_direction", "horizontal")
         padding = self._get_padding()
 
         img_size = self._get_size_from_config(
@@ -897,7 +891,7 @@ class RetrogradeImage:
         padding_x = 0
         padding_y = 0
 
-        if direction == "horizontal":
+        if frame_direction == "horizontal":
             padding_y = padding[0]
         else:
             padding_x = padding[3]
@@ -905,7 +899,7 @@ class RetrogradeImage:
         for frame in frames:
             variant_img = None
 
-            if direction == "horizontal":
+            if frame_direction == "horizontal":
                 padding_x += padding[3]
             else:
                 padding_y += padding[0]
@@ -923,15 +917,11 @@ class RetrogradeImage:
 
                 variant_img = self._process_image(
                     variant_img,
-                    frame_layer.get("alpha", 1.0)
+                    frame_layer.get("alpha", 1.0),
+                    frame_layer.get("transforms", [])
                 )
 
                 offset = frame_layer.get("offset", [0, 0])
-
-                offset = (
-                    offset[0],
-                    offset[1]
-                )
 
                 img = self._paste_image(
                     img,
@@ -942,7 +932,7 @@ class RetrogradeImage:
                     )
                 )
 
-            if direction == "horizontal":
+            if frame_direction == "horizontal":
                 padding_x += padding[1]
 
                 col += 1
@@ -960,31 +950,43 @@ class RetrogradeImage:
 
         return img
 
-    def _process_image(self, img, alpha=1.0):
+    def _process_image(self, img, alpha=1.0, transforms=[]):
         color_map = self._get_color_map()
 
-        return self._replace_colors(img, color_map, alpha)
+        img = self._replace_colors(img, color_map, alpha)
+
+        for transform in transforms:
+            if transform == "trim":
+                bbox = img.getbbox()
+                img = img.crop(bbox)
+            elif transform == "flip_h":
+                img = img.transpose(Image.FLIP_LEFT_RIGHT)
+            elif transform == "flip_v":
+                img = img.transpose(Image.FLIP_TOP_BOTTOM)
+            elif transform == "rotate_right":
+                img = img.transpose(Image.ROTATE_270)
+            elif transform == "rotate_left":
+                img = img.transpose(Image.ROTATE_90)
+
+        return img
 
     def _get_color_map(self):
-        if self._theme_data is None:
-            return []
-
         input_colors = self._input_data.get("colors")
-        group_colors = self._input_data.get("groups", {}).get(self._group_name, {}).get("colors", {})
 
         if input_colors is None:
             return []
 
+        group_colors = self._input_data.get("groups", {}).get(self._group_name, {}).get("colors", {})
+
         color_map = []
 
-        for color_name, output_color in self._theme_data.items():
-            input_color = input_colors.get(color_name)
-
-            if input_color is None:
-                continue
+        for color_name, input_color in input_colors.items():
+            output_color = input_color
 
             if color_name in group_colors:
                 output_color = self._theme_data.get(group_colors.get(color_name), output_color)
+            else:
+                output_color = self._theme_data.get(color_name, output_color)
 
             color_map.append((input_color, output_color))
 
@@ -1135,32 +1137,26 @@ class RetrogradeImage:
 
         return None
 
-    def _get_size_from_config(self, ora_size, padding, frames_len):
+    def _get_size_from_config(self, variant_size, padding, frame_len):
         mode = self._config_data.get("mode", 'images')
 
-        real_size = self._get_size_with_padding(ora_size, padding)
+        real_size = self._get_size_with_padding(variant_size, padding)
 
         if mode == "frames":
             return real_size
 
-        direction = self._config_data.get("direction", "horizontal")
+        frame_direction = self._config_data.get("frame_direction", "horizontal")
 
-        if mode == "sheet" or mode == "sheet_frames":
-            if direction == "horizontal":
-                return (real_size[0] * frames_len, real_size[1])
-            else:
-                return (real_size[0], real_size[1] * frames_len)
-
-        width = self._config_data.get("width", 0)
-        height = self._config_data.get("height", 0)
-        cols = self._config_data.get("cols", 0)
-        rows = self._config_data.get("rows", 0)
+        width = self._config_data.get("frame_width", 0)
+        height = self._config_data.get("frame_height", 0)
+        cols = self._config_data.get("frame_cols", 0)
+        rows = self._config_data.get("frame_rows", 0)
 
         if width <= 0 and height <= 0 and rows <= 0 and cols <= 0:
-            if direction == "horizontal":
-                return (real_size[0] * frames_len, real_size[1])
+            if frame_direction == "horizontal":
+                return (real_size[0] * frame_len, real_size[1])
             else:
-                return (real_size[0], real_size[1] * frames_len)
+                return (real_size[0], real_size[1] * frame_len)
 
         frame_rows = 0
         frame_cols = 0
@@ -1168,35 +1164,35 @@ class RetrogradeImage:
         if width <= 0 and height <= 0:
             if rows > 0:
                 if cols > 0:
-                    if direction == "horizontal":
-                        frame_cols = min(cols, frames_len)
-                        frame_rows = math.ceil(frames_len / cols)
+                    if frame_direction == "horizontal":
+                        frame_cols = min(cols, frame_len)
+                        frame_rows = math.ceil(frame_len / cols)
                     else:
-                        frame_cols = math.ceil(frames_len / rows)
-                        frame_rows = min(cols, frames_len)
+                        frame_cols = math.ceil(frame_len / rows)
+                        frame_rows = min(cols, frame_len)
                 else:
-                    frame_cols = math.ceil(frames_len / rows)
-                    frame_rows = min(cols, frames_len)
+                    frame_cols = math.ceil(frame_len / rows)
+                    frame_rows = min(cols, frame_len)
             else:
-                frame_cols = min(cols, frames_len)
-                frame_rows = math.ceil(frames_len / cols)
+                frame_cols = min(cols, frame_len)
+                frame_rows = math.ceil(frame_len / cols)
 
             return (real_size[0] * frame_cols, real_size[1] * frame_rows)
 
         if width > 0:
             if height > 0:
-                if direction == "horizontal":
+                if frame_direction == "horizontal":
                     frame_cols = math.floor(width / real_size[0])
-                    frame_rows = math.ceil(frames_len / frame_cols)
+                    frame_rows = math.ceil(frame_len / frame_cols)
                 else:
                     frame_rows = math.floor(height/ real_size[1])
-                    frame_cols = math.ceil(frames_len / frame_rows)
+                    frame_cols = math.ceil(frame_len / frame_rows)
             else:
                 frame_cols = math.floor(width / real_size[0])
-                frame_rows = math.ceil(frames_len / frame_cols)
+                frame_rows = math.ceil(frame_len / frame_cols)
         else:
             frame_rows = math.floor(height/ real_size[1])
-            frame_cols = math.ceil(frames_len / frame_rows)
+            frame_cols = math.ceil(frame_len / frame_rows)
 
         return (real_size[0] * frame_cols, real_size[1] * frame_rows)
 
@@ -1232,9 +1228,9 @@ class RetrogradeImage:
             )
 
         if frames > 1:
-            direction = self._config_data.get("direction", "horizontal")
+            frame_direction = self._config_data.get("frame_direction", "horizontal")
 
-            if direction == "horizontal":
+            if frame_direction == "horizontal":
                 new_size = (
                     new_size[0] * frames,
                     new_size[1],
@@ -1247,13 +1243,13 @@ class RetrogradeImage:
 
         return new_size
 
-    def _get_tiling_size(self, group_name=None):
-        width = self._config_data.get("width", 0)
-        height = self._config_data.get("height", 0)
-        cols = self._config_data.get("cols", 0)
-        rows = self._config_data.get("rows", 0)
+    def _get_tiling_size(self, group_name=None, frame_len = 1):
+        width = self._config_data.get("sheet_width", 0)
+        height = self._config_data.get("sheet_height", 0)
+        cols = self._config_data.get("sheet_cols", 0)
+        rows = self._config_data.get("sheet_rows", 0)
 
-        min_size = self._get_min_group_size(group_name)
+        min_size = self._get_min_group_size(group_name, frame_len, False)
 
         if width <= 0 and height <= 0 and rows <= 0 and cols <= 0:
             return None
@@ -1275,7 +1271,7 @@ class RetrogradeImage:
                 max(height, min_size[1])
             )
 
-        first_min_size = self._get_min_group_size(group_name, True)
+        first_min_size = self._get_min_group_size(group_name, frame_len, True)
 
         if cols > 0:
             if rows > 0:
@@ -1294,12 +1290,9 @@ class RetrogradeImage:
                 max(rows * first_min_size[1], min_size[1]),
             )
 
-    def _get_min_group_size(self, group_name=None, first=False):
+    def _get_min_group_size(self, group_name=None, frame_len=1, first=False):
         width = 0
         height = 0
-
-        template = self._input_data["templates"][self._config_data["template"]]
-        frames = template["frames"]
 
         for current_group_name, group_data in self._input_data.get("groups", {}).items():
             if group_name != None and group_name != current_group_name:
@@ -1321,7 +1314,7 @@ class RetrogradeImage:
                 variant_size = self._get_size_with_padding(
                     variant_size,
                     self._get_padding(),
-                    len(frames)
+                    frame_len
                 )
 
                 if variant_size[0] > width:
@@ -1408,6 +1401,7 @@ class RetrogradeImage:
                             "layer": frame_reference.get("layer", "*"),
                             "offset": frame_reference.get("offset", [0, 0]),
                             "alpha": frame_reference.get("alpha", 1.0),
+                            "transforms": frame_reference.get("transforms", []),
                         }
                         new_frame_layers.append(new_frame_layer)
                 else:
@@ -1431,6 +1425,7 @@ class RetrogradeImage:
                         "layer": frame_layer.get("layer", "*"),
                         "offset": frame_layer.get("offset", [0, 0]),
                         "alpha": frame_layer.get("alpha", 1.0),
+                        "transforms": frame_layer.get("transforms", []),
                     }
                     new_frame_layers.append(new_frame_layer)
 
@@ -1458,18 +1453,22 @@ class RetrogradeImage:
         return False
 
     def _clean_path(self, s):
+        sheet_direction = self._config_data.get("sheet_direction", "horizontal")
+        frame_direction = self._config_data.get("frame_direction", "horizontal")
+
         s = s.replace("[[name]]", self._clean_value(self._name))
         s = s.replace("[[version]]", self._clean_value(str(self._version)))
         s = s.replace("[[theme]]", self._clean_value(self._theme_name))
         s = s.replace("[[variant]]", self._clean_value(self._variant_name))
+        s = s.replace("[[sheet_direction]]", sheet_direction)
         s = s.replace("[[input]]", self._clean_value(self._input_name))
         s = s.replace("[[output]]", self._clean_value(self._output_name))
         s = s.replace("[[image]]", self._clean_value(self._image_name))
         s = s.replace("[[group]]", self._clean_value(self._group_name))
         s = s.replace("[[template]]", self._clean_value(self._config_data["template"]))
         s = s.replace("[[mode]]", self._config_data.get("mode", "images"))
-        s = s.replace("[[direction]]", self._config_data.get("direction", "horizontal"))
         s = s.replace("[[frame]]", str(self._frame_index))
+        s = s.replace("[[frame_direction]]", frame_direction)
         s = s.replace("[[frame_width]]", str(self._frame_width))
         s = s.replace("[[frame_height]]", str(self._frame_height))
         s = s.replace("[[image_width]]", str(self._image_width))
@@ -1479,14 +1478,15 @@ class RetrogradeImage:
         s = s.replace("[[^version]]", self._clean_value(str(self._version)))
         s = s.replace("[[^theme]]", self._clean_value(self._theme_name, True))
         s = s.replace("[[^variant]]", self._clean_value(self._variant_name, True))
+        s = s.replace("[[^sheet_direction]]", self._clean_value(sheet_direction, True))
         s = s.replace("[[^input]]", self._clean_value(self._input_name, True))
         s = s.replace("[[^output]]", self._clean_value(self._output_name, True))
         s = s.replace("[[^image]]", self._clean_value(self._image_name, True))
         s = s.replace("[[^group]]", self._clean_value(self._group_name, True))
         s = s.replace("[[^template]]", self._clean_value(self._config_data["template"], True))
         s = s.replace("[[^mode]]", self._clean_value(self._config_data.get("mode", "images"), True))
-        s = s.replace("[[^direction]]", self._clean_value(self._config_data.get("direction", "horizontal"), True))
         s = s.replace("[[^frame]]", str(self._frame_index))
+        s = s.replace("[[^frame_direction]]", self._clean_value(frame_direction, True))
         s = s.replace("[[^frame_width]]", str(self._frame_width))
         s = s.replace("[[^frame_height]]", str(self._frame_height))
         s = s.replace("[[^image_width]]", str(self._image_width))

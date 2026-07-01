@@ -221,9 +221,9 @@ The following values are allowed:
 
 ### inputs.\<input\_name\>.groups.\<group\_name\>.variants: ["\<layer\_name\>", ...]
 
-A list of all **Variant** layers in your open raster image templates that apply to this group.
+A list of all **Variants** that apply to this group.
 
-\<layer\_name\> should match a layer in your open raster image templates.
+They can be any arbitrary value, or match a layer in your open raster image templates.
 
 ### inputs.\<input\_name\>.groups.\<group\_name\>.references: {"\<reference\_name\>": "\<layer\_name\>", ...}
 
@@ -237,11 +237,23 @@ If a \<reference\_name\> matches a \<layer\_name\>, the \<reference\_name\> will
 
 ### inputs.\<input\_name\>.groups.\<group\_name\>.references: {"\<reference\_name\>": {"<variant\_name\>": "<layer_name>"}, ...}
 
-You can also reference layers based on the current **Variant**.
+You can also reference layers based on the current **Variant** by using "\*" as the value.
+
+### inputs.\<input\_name\>.groups.\<group\_name\>.references: {"\<reference\_name\>": {"<regex\_pattern\>": "<layer_name>"}, ...}
+
+You can specify a regex pattern to match against variants in your group. You can then also use the patterns capture groups in the \<layer\_name\>.
+
+For example, `{"/-(\\d+)/": "layer_$1"}` would match all variants that end in a digit and use the capture group to replace *$1* with that digit.
+
+Note that a maximum of nine capture groups are supported.
+
+### inputs.\<input\_name\>.colors.\<color\_name\> : "\<color\_name\>"
+
+You can override specific colors by mapping one color name to another.
 
 ### inputs.\<input\_name\>.skip: ["\<layer\_name\>", ...]
 
-If your did not specify any groups, the names of any layer that is not a **Variant** layer should be listed here.
+If you did not specify any groups, the names of any layer that is not a **Variant** layer should be listed here.
 
 ## Input Frames
 
@@ -305,9 +317,19 @@ Use the current **Variant** layer.
 
 When specified, this layer will only be outputted if the current group is listed.
 
+You can use a wild card in your group names to match multiple groups.
+
+For example, `"small_*_border"` would match all groups that start with *small\_* and end in *\_border*.
+
+You can also use a regex pattern to match against group names.
+
+For example, `"/-(\\d+)/"` would match all groups that end in a digit.
+
 ### inputs.\<input\_name\>.templates.\<template\_name\>.frames[n][n].variants: [<variant_name>, ...]
 
 When specified, this layer will only be outputted if the current **Variant** is listed.
+
+Like with groups, you can also use a wild card or regex pattern to match them.
 
 ### inputs.\<input\_name\>.templates.\<template\_name\>.frames[n][n].offset: [\<x\>, \<y\>]
 
@@ -326,6 +348,42 @@ An alpha value multiplier. Each pixel's alpha value of the current layer will be
 The following values are allowed:
 
 * [**\<float\>** a]
+
+### inputs.\<input\_name\>.templates.\<template\_name\>.frames[n][n].transforms: ["transform", ...]
+
+You can modify your open raster image layers using the following transforms
+
+* trim
+* flip\_h
+* flip\_v
+* rotate\_right
+* rotate\_left
+
+The transforms will be executed in the order they appear in the array.
+
+## Transforms
+
+### trim
+
+Crops the image layer by removing all fully transparent pixels around the image.
+
+### flip\_h
+
+Flips the image layer horizontally.
+
+### flip\_v
+
+Flips the image layer vertically.
+
+### rotate\_right
+
+Rotates the image clockwise by 90 degrees.
+
+Should you want to rotate 180 degrees, you can specify `"rotate_right"` twice.
+
+### rotate\_left
+
+Rotates the image counter clockwise by 90 degrees.
 
 ## Outputs
 
@@ -349,8 +407,8 @@ Outputs define how your inputs your be outputted. These would be the resulting p
 					"mode": "images",
 					"template": "<template_name>",
 					"path": "/[[input]]_[[template]]/[[variant]]",
-					"direction": "horizontal",
-					"cols": 12,
+					"frame_direction": "horizontal",
+					"frame_cols": 12,
 					"padding": 2
 				},
 				{
@@ -364,8 +422,8 @@ Outputs define how your inputs your be outputted. These would be the resulting p
 					"mode": "sheet",
 					"template": "<template_name>",
 					"path": "/[[image]]_[[template]]",
-					"direction": "vertical"
-					"rows": 16,
+					"sheet_direction": "vertical"
+					"sheet_rows": 16,
 					"padding": 2,
 					"group_padding": true
 				},
@@ -373,8 +431,8 @@ Outputs define how your inputs your be outputted. These would be the resulting p
 					"mode": "sheet_frames",
 					"template": "<template_name>",
 					"path": "/[[image]]_[[template]]_[[group]]/[[frame]]",
-					"direction": "horizontal"
-					"width" 256,
+					"sheet_direction": "horizontal"
+					"sheet_width" 256,
 				},
 				...
 			}
@@ -434,7 +492,7 @@ Can be one of the following:
 * images
 * frames
 * sheet
-* sheet_frames
+* sheet\_frames
 
 The default mode is *images*. See [Output Modes](#output-modes) for details.
 
@@ -446,9 +504,9 @@ In modes *images* and *sheet*, [[frame]] will always be this value.
 
 The default is 0.
 
-### outputs.\<output\_name\>.configs[n].direction: "\<direction\>"
+### outputs.\<output\_name\>.configs[n].frame\_direction: "\<frame\_direction\>"
 
-The direction image frames are placed in.
+The direction **Variant** animation frames are placed in.
 
 Can be one of the following:
 
@@ -459,37 +517,70 @@ The default is *horizontal*
 
 For example, if a **Variant** has 4 frames, and the direction is *horizontal*, the frames will be tiled 4x1.
 
-Note that in *images* mode, the width, height, rows, and cols can change this behavior.
+See [Output Image Size](#output-image-size) for more details.
 
-For example, if the direction is *horizontal* and cols is 2, 4 frames would be tiled 2x2.
+### outputs.\<output\_name\>.configs[n].frame\_width: \<width\>
+
+The maximum width of the resulting **Variant** image. **Variant** animation frames will be tiled to fit.
 
 See [Output Image Size](#output-image-size) for more details.
 
-### outputs.\<output\_name\>.configs[n].width: \<width\>
+### outputs.\<output\_name\>.configs[n].frame\_height: \<height\>
+
+The maximum height of the resulting **Variant** image. **Variant** animation frames will be tiled to fit.
+
+See [Output Image Size](#output-image-size) for more details.
+
+### outputs.\<output\_name\>.configs[n].frame\_rows: \<rows\>
+
+The maximum number of rows of **Variant** animation frames that are allowed per column.
+
+See [Output Image Size](#output-image-size) for more details.
+
+### outputs.\<output\_name\>.configs[n].frame_cols: \<cols\>
+
+The maximum number of columns of **Variant** animation frames that are allowed per row.
+
+See [Output Image Size](#output-image-size) for more details.
+
+### outputs.\<output\_name\>.configs[n].sheet\_direction: "\<sheet\_direction\>"
+
+The direction **Variants** are tiled on a sheet.
+
+Can be one of the following:
+
+* horizontal
+* vertical
+
+The default is *horizontal*
+
+This only applies when the mode is *sheet* or *sheet_frames*.
+
+### outputs.\<output\_name\>.configs[n].sheet\_width: \<width\>
 
 The maximum width of the resulting output image. **Variants** will be tiled to fit.
 
 See [Output Image Size](#output-image-size) for more details.
 
-### outputs.\<output\_name\>.configs[n].height: \<height\>
+### outputs.\<output\_name\>.configs[n].sheet\_height: \<height\>
 
 The maximum height of the resulting output image. **Variants** will be tiled to fit.
 
 See [Output Image Size](#output-image-size) for more details.
 
-### outputs.\<output\_name\>.configs[n].rows: \<rows\>
+### outputs.\<output\_name\>.configs[n].sheet\_rows: \<rows\>
 
 The maximum number of rows of image **Variants** that are allowed per column.
 
-In *sheet* mode, if multiple groups are being outputted to the same sheet, rows will be sized to fit the first group's **Variant** height or a minimum of the group **Variant** with the largest height.
+If multiple groups are being outputted to the same sheet, rows will be sized to fit the first group's **Variant** height or a minimum of the group **Variant** with the largest height.
 
 See [Output Image Size](#output-image-size) for more details.
 
-### outputs.\<output\_name\>.configs[n].cols: \<cols\>
+### outputs.\<output\_name\>.configs[n].sheet\_cols: \<cols\>
 
 The maximum number of columns of image **Variants** that are allowed per row.
 
-In *sheet* mode, if multiple groups are being outputted to the same sheet, columns will be sized to fit the first group's **Variant** width or a minimum of the group **Variant** with the largest width.
+If multiple groups are being outputted to the same sheet, columns will be sized to fit the first group's **Variant** width or a minimum of the group **Variant** with the largest width.
 
 See [Output Image Size](#output-image-size) for more details.
 
@@ -565,31 +656,57 @@ Similar to sheet, only each frame of a template gets its own tiled image.
 
 ## Output Image Size
 
-The following configuration values determine how **Variants** are laid out in the image:
+### Frames
 
-* direction
-* width
-* height
-* rows
-* cols
+The following configuration values determine how a **Variant's** animation frames are laid out in the image:
 
-If none of width, height, rows, and cols are specified, **Variants** will all be on the same row or column depending on the direction and the image will be sized accordingly.
+* frame\_direction
+* frame\_width
+* frame\_height
+* frame\_rows
+* frame\_cols
 
-In *sheet* mode, if at least one of width, height, rows, and cols is specified,  direction only affects the **Variants** frame layout. If none are specified, the **Variants** will be tiled in the opposite of the direction specified.
+If none of width, height, rows, and cols are specified, frames will all be on the same row or column depending on the frame direction and the image will be sized accordingly.
 
 If width and/or height is set, cols and rows will be ignored.
 
-If only width is set, the height will adjust to fit the tiled **Variant's** frames.
+If only width is set, the height will adjust to fit the tiled frames.
 
-Similarly if only height is set, the width will adjust to fit the tiled **Variant's** frame.
+Similarly if only height is set, the width will adjust to fit the tiled frames.
 
-If both are set, one or the other will act as a minimum only, and grow larger if required to fit all **Variants**. The ones that grows will be determined by the tiling direction as well as the minimum size needed to fit a **Variant**.
+If both are set, one or the other will act as a minimum only, and grow larger if required to fit all frames. The one that grows will be determined by the frame direction as well as the minimum size needed to fit a frame.
+
+For example if tiling frames horizontally, the image will automatically grow vertically as needed.
+
+If both rows and cols are specified, one or the other will take precedence based on the direction.
+
+For example, if the frame direction is *horizontal*, cols will take precedence and rows will grow as needed to fit.
+
+### Sheets
+
+The following configuration values determine how **Variants** are laid out in the image:
+
+* sheet\_direction
+* sheet\_width
+* sheet\_height
+* sheet\_rows
+* sheet\_cols
+
+If none of width, height, rows, and cols are specified, **Variants** will all be on the same row or column depending on the sheet direction and the image will be sized accordingly.
+
+If width and/or height is set, cols and rows will be ignored.
+
+If only width is set, the height will adjust to fit the tiled **Variants**.
+
+Similarly if only height is set, the width will adjust to fit the tiled **Variants**.
+
+If both are set, one or the other will act as a minimum only, and grow larger if required to fit all **Variants**. The ones that grows will be determined by the sheet direction as well as the minimum size needed to fit a **Variant**.
 
 For example if tiling **Variants** horizontally, the image will automatically grow vertically as needed.
 
 If both rows and cols are specified, one or the other will take precedence based on the direction.
 
-For example, if the direction is *horizontal*, cols will take precedence and rows will grow as needed to fit.
+For example, if the sheet direction is *horizontal*, cols will take precedence and rows will grow as needed to fit.
 
 ## Output Variables
 
@@ -613,7 +730,8 @@ The following output values support output variables.
 |**[[group]]**| The name of the current input group.
 |**[[template]]**| The name of the current input template.
 |**[[mode]]**| The name of the current mode.
-|**[[direction]]**| The name of the current direction.
+|**[[sheet_direction]]**| The name of the current sheet direction.
+|**[[frame_direction]]**| The name of the current frame direction.
 |**[[frame_width]]**| The width of the current **Variant's** frame.
 |**[[frame_height]]**| The height of the current **Variant's** frame.
 |**[[image_width]]**| The width of the resulting output image.
